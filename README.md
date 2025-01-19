@@ -24,8 +24,8 @@ The YouTube Data API allows developers to access YouTube data such as videos, pl
 To get started, clone the repository and install the required dependencies:
 
 ```bash
-git clone https://github.com/yourusername/youtube-data-api-exploration.git
-cd youtube-data-api-exploration
+git clone https://github.com/yourusername/youtube_data_api.git
+cd youtube_data_api_exploration
 pip install -r requirements.txt
 ```
 
