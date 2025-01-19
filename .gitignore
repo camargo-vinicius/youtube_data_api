@@ -10,4 +10,4 @@ hello.py
 # Virtual environments
 .venv
 # enviroment variables
-.env
+**/.env
