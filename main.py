@@ -3,7 +3,6 @@ import pandas as pd
 import os
 import requests
 import time
-import json
 from dotenv import load_dotenv
 
 # carregando variaveis de ambiente
@@ -11,10 +10,11 @@ load_dotenv()
 
 # setando variaveis de ambiente
 API_KEY = os.getenv("YOUTUBE_API_KEY")
+
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 
 #%%
-def get_videos_list(api_key: str, channel_id: str, pg_token):
+def get_videos_list(pg_token: str):
     """
     Fetches a list of videos from a specified YouTube channel.
 
@@ -22,8 +22,6 @@ def get_videos_list(api_key: str, channel_id: str, pg_token):
     a list of videos from a specified channel, ordered by date.
 
     Args:
-        api_key (str): The API key for accessing the YouTube Data API.
-        channel_id (str): The ID of the YouTube channel.
         pg_token (str): The page token for pagination.
 
     Returns:
@@ -31,9 +29,18 @@ def get_videos_list(api_key: str, channel_id: str, pg_token):
               which includes a list of videos.
     """
     
-    url_list_videos = f"https://www.googleapis.com/youtube/v3/search?key={api_key}&channelId={channel_id}&part=snippet,id&order=date&maxResults=200000&{pg_token}"
+    # url base
+    url_list_base = f"https://www.googleapis.com/youtube/v3/search?key={API_KEY}&channelId={CHANNEL_ID}&part=snippet,id&order=date&maxResults=50"
     
-    return requests.get(url=url_list_videos).json()
+    # url para paginacao
+    url_list_videos = f"{url_list_base}&pageToken={pg_token}" if pg_token else url_list_base
+
+    response = requests.get(url=url_list_videos)
+
+    if response.status_code != 200:
+        raise Exception(f"Falha na requisição da lista de vídeos! status code = {response.status_code} - {response.json()['error']['message']}")
+
+    return response.json()
 # --------------------------------------------------------------------
 
 def get_videos_stats(video_id: str) -> tuple:
@@ -61,7 +68,14 @@ def get_videos_stats(video_id: str) -> tuple:
 #%%
 
 def collect_data_videos() -> pd.DataFrame:
-    # pegando a lista de videos da caze tv
+    """
+    Collects video data from a YouTube channel using pagination.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the collected video data.
+    """
+    
+    # setando page_token para iniciar
     page_token = ""
 
     # setando o dicionario que irá guardar os dados de todos os videos
@@ -72,47 +86,59 @@ def collect_data_videos() -> pd.DataFrame:
                     'like_count': [],
                     'comments_count': []}
 
-    # while page_token != None:
+    while True:
 
-    data_videos = get_videos_list(API_KEY, CHANNEL_ID, page_token)
-    # print(data_videos)
+        try:
+            data_videos = get_videos_list(page_token)
 
-    # pegando as infos de todos os videos
-    for video in data_videos['items']:
-        
-        # pegando dados somente de videos
-        if video['id']['kind'] == 'youtube#video':
-        
-            video_id = video['id']['videoId']
-            dict_videos['video_id'].append(video_id)
-            
-            dict_videos['title'].append(video['snippet']['title'])
-            
-            dict_videos['published_date'].append(video['snippet']['publishedAt'].split('T')[0])
+            # delay de 1s para API conseguir coletar todos os dados sem atingir limite de cotas
+            time.sleep(1)
 
-            # chamando função para pegar views, likes e comentarios do video
-            views_count, like_count, comments_count = get_videos_stats(video_id)
+            # pegando as infos de todos os videos
+            for video in data_videos['items']:
+                
+                # pegando dados somente de videos
+                if video['id']['kind'] == 'youtube#video':
+                
+                    video_id = video['id']['videoId']
+                    dict_videos['video_id'].append(video_id)
+                    
+                    dict_videos['title'].append(video['snippet']['title'])
+                    
+                    dict_videos['published_date'].append(video['snippet']['publishedAt'].split('T')[0])
 
-            dict_videos['views_count'].append(views_count)
-            
-            dict_videos['like_count'].append(like_count)
-            
-            dict_videos['comments_count'].append(comments_count)
+                    # chamando função para pegar views, likes e comentarios do video
+                    views_count, like_count, comments_count = get_videos_stats(video_id)
 
-    # pega o token da
-    # page_token = data_videos['nextPageToken']
+                    dict_videos['views_count'].append(views_count)
+                    
+                    dict_videos['like_count'].append(like_count)
+                    
+                    dict_videos['comments_count'].append(comments_count)
 
-    # criando df a partir do dicionario
-    return pd.DataFrame(dict_videos)
+            # pega o token da prox pag
+            page_token = data_videos.get('nextPageToken')
+
+            if page_token is None: # sai do loop while
+                break
+
+        except Exception as error:
+            print(f'Erro na coleta dos dados: {error}')
+            break
+
+        else:
+            print(f'Coleta feito com sucessso! criando df...')
+            df = pd.DataFrame(dict_videos)
+
+            return df
 
 
-def main():
-    df_videos = collect_data_videos()
-    df_videos.head()
-
-main()
 
 #%%
-# page_token = ""
-# data_videos = get_videos_list(API_KEY, CHANNEL_ID, page_token)
-# print(data_videos)
+df_videos = collect_data_videos()
+
+if isinstance(df_videos, pd.DataFrame):
+    df_videos.shape
+
+else:
+    df_videos
