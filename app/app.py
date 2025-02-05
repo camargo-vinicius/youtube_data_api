@@ -35,7 +35,7 @@ def diff_months(date1, date2):
 
 #%%
 # fazendo o unpickling do arquivo data/videos_stats.pkl
-with open('../data/videos_stats.pkl', 'rb') as f:
+with open('videos_stats.pkl', 'rb') as f:
     df = pickle.load(f)
 #%%
 # ----------- criando o dashboard -----------------
