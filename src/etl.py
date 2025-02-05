@@ -160,8 +160,15 @@ def main():
     df_processed = transform(df_videos)
 
     # salvando como pickle em formato binário
-    with open('../data/videos_stats.pkl', 'wb') as f:
-        pickle.dump(df_processed, f)
 
+    try:
+        with open('../app/videos_stats.pkl', 'wb') as f:
+            pickle.dump(df_processed, f)
+    
+    except Exception as e:
+        print(e)
+
+    else:
+        print('Arquivo salvo com sucesso.')
 #%%
 main()
