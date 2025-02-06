@@ -7,7 +7,7 @@ import altair as alt
 import plotly.express as px
 import datetime
 from dateutil.relativedelta import relativedelta
-#%%
+import os
 #%%
 @st.cache_data # as datas não vão variar, então podemos usar o cache_data
 def diff_months(date1, date2):
@@ -34,9 +34,22 @@ def diff_months(date1, date2):
         return '+ 6 meses'
 
 #%%
+# retorna o caminho completo (absoluto) do arquivo atual
+ABS_PATH = os.path.abspath(__file__)
+
+# sobe dois níveis na pasta raiz: app/ e depois Youtube_Data_API/
+BASE_DIR = os.path.dirname(os.path.dirname(ABS_PATH))
+
+# monta o caminho para o diretorio data/videos_stats.pkl
+DATA_PATH = os.path.join(BASE_DIR, 'data', 'videos_stats.pkl')
+
+try:
 # fazendo o unpickling do arquivo data/videos_stats.pkl
-with open('videos_stats.pkl', 'rb') as f:
-    df = pickle.load(f)
+    with open(DATA_PATH, 'rb') as f:
+        df = pickle.load(f)
+
+except FileNotFoundError:
+    df = pd.DataFrame() # cria um dataframe vazio
 #%%
 # ----------- criando o dashboard -----------------
 
@@ -193,4 +206,3 @@ st.scatter_chart(data=df,
                  size='comments_count', 
                  x_label='Quantidade de views', 
                  y_label='Quantidade de likes')
-
