@@ -162,7 +162,7 @@ def main():
     # salvando como pickle em formato binário
 
     try:
-        with open('../app/videos_stats.pkl', 'wb') as f:
+        with open('../data/videos_stats.pkl', 'wb') as f:
             pickle.dump(df_processed, f)
     
     except Exception as e:
